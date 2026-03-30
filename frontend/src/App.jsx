@@ -6,10 +6,12 @@ import ProductsPage from "./pages/ProductsPage";
 import ProductDetailsPage from "./pages/ProductDetailsPage";
 import ProductEditPage from "./pages/ProductEditPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import UsersPage from "./pages/UsersPage";
+import UserEditPage from "./pages/UserEditPage";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
-    const { isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, logout, user } = useAuth();
 
     return (
         <div className="container">
@@ -20,6 +22,8 @@ export default function App() {
                     {isAuthenticated ? (
                         <>
                             <Link to="/me">Профиль</Link>
+                            {user?.role === 'admin' && <Link to="/users">Пользователи</Link>}
+                            {user && ['seller', 'admin'].includes(user.role) && <Link to="/products/new">Создать товар</Link>}
                             <button onClick={logout}>Выход</button>
                         </>
                     ) : (
@@ -55,8 +59,32 @@ export default function App() {
                 <Route
                     path="/products/:id/edit"
                     element={
-                        <ProtectedRoute>
+                        <ProtectedRoute allowedRoles={['seller', 'admin']}>
                             <ProductEditPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/products/new"
+                    element={
+                        <ProtectedRoute allowedRoles={['seller', 'admin']}>
+                            <ProductEditPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/users"
+                    element={
+                        <ProtectedRoute allowedRoles={['admin']}>
+                            <UsersPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/users/:id/edit"
+                    element={
+                        <ProtectedRoute allowedRoles={['admin']}>
+                            <UserEditPage />
                         </ProtectedRoute>
                     }
                 />

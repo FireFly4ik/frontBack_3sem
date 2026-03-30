@@ -108,3 +108,10 @@ export const productsApi = {
     update: (id, payload) => apiClient.put(`/api/products/${id}`, payload),
     remove: (id) => apiClient.delete(`/api/products/${id}`)
 };
+
+export const usersApi = {
+    getAll: () => apiClient.get('/api/users'),
+    getById: (id) => apiClient.get(`/api/users/${id}`),
+    update: (id, payload) => apiClient.put(`/api/users/${id}`, payload),
+    remove: (id) => apiClient.delete(`/api/users/${id}`)
+};

@@ -4,7 +4,10 @@ import { productsApi } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProductsPage() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+    const canCreate = user && ['seller', 'admin'].includes(user.role);
+    const canEdit = user && ['seller', 'admin'].includes(user.role);
+
     const [products, setProducts] = useState([]);
     const [error, setError] = useState("");
     const [form, setForm] = useState({
@@ -59,8 +62,12 @@ export default function ProductsPage() {
                                     <>
                                         {" "}
                                         <Link to={`/products/${p.id}`}>Открыть</Link>
-                                        {" | "}
-                                        <Link to={`/products/${p.id}/edit`}>Редактировать</Link>
+                                        {canEdit && (
+                                            <>
+                                                {" | "}
+                                                <Link to={`/products/${p.id}/edit`}>Редактировать</Link>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </li>
@@ -69,33 +76,35 @@ export default function ProductsPage() {
                 )}
             </div>
 
-            <div className="card">
-                <h3>Создать товар</h3>
-                <form onSubmit={onCreate}>
-                    <input
-                        placeholder="Название"
-                        value={form.title}
-                        onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    />
-                    <input
-                        placeholder="Категория"
-                        value={form.category}
-                        onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    />
-                    <input
-                        placeholder="Описание"
-                        value={form.description}
-                        onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    />
-                    <input
-                        placeholder="Цена"
-                        type="number"
-                        value={form.price}
-                        onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    />
-                    <button type="submit">Создать</button>
-                </form>
-            </div>
+            {canCreate && (
+                <div className="card">
+                    <h3>Создать товар</h3>
+                    <form onSubmit={onCreate}>
+                        <input
+                            placeholder="Название"
+                            value={form.title}
+                            onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        />
+                        <input
+                            placeholder="Категория"
+                            value={form.category}
+                            onChange={(e) => setForm({ ...form, category: e.target.value })}
+                        />
+                        <input
+                            placeholder="Описание"
+                            value={form.description}
+                            onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        />
+                        <input
+                            placeholder="Цена"
+                            type="number"
+                            value={form.price}
+                            onChange={(e) => setForm({ ...form, price: e.target.value })}
+                        />
+                        <button type="submit">Создать</button>
+                    </form>
+                </div>
+            )}
 
             {error && <p className="error">{error}</p>}
         </section>

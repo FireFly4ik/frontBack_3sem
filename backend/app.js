@@ -65,6 +65,7 @@ function generateAccessToken(user) {
         {
             sub: user.id,
             email: user.email,
+            role: user.role,
         },
         ACCESS_SECRET,
         {
@@ -78,6 +79,7 @@ function generateRefreshToken(user) {
         {
             sub: user.id,
             email: user.email,
+            role: user.role,
         },
         REFRESH_SECRET,
         {
@@ -123,6 +125,18 @@ function authMiddleware(req, res, next) {
             error: "Invalid or expired token",
         });
     }
+}
+
+function roleMiddleware(allowedRoles) {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Forbidden: insufficient role' });
+        }
+        next();
+    };
 }
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -178,6 +192,7 @@ app.use((req, res, next) => {
  *       404:
  *         description: Пользователь не найден
  */
+
 app.get("/api/auth/me", authMiddleware, (req, res) => {
     const userId = req.user.sub;
 
@@ -191,7 +206,8 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
 
     res.json({
         id: user.id,
-        email: user.email
+        email: user.email,
+        role: user.role,
     });
 });
 
@@ -246,7 +262,7 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
  */
 
 app.post("/api/auth/register", async (req, res) => {
-    const { email, first_name, last_name, password } = req.body;
+    const { email, first_name, last_name, password, role } = req.body;
 
     if (!email || !password || !first_name || !last_name) {
         return res.status(400).json({ error: "email, password, first_name and last_name are required" });
@@ -262,6 +278,7 @@ app.post("/api/auth/register", async (req, res) => {
         first_name: first_name,
         last_name: last_name,
         password: await hashPassword(password),
+        role: role,
     };
 
     users.push(newUser);
@@ -443,9 +460,11 @@ app.post("/api/auth/refresh", (req, res) => {
  *                     type: string
  *                   price:
  *                     type: number
+ *      401:
+ *         description: Unauthorized
  */
 
-app.get("/api/products", (req, res) => {
+app.get("/api/products", authMiddleware, (req, res) => {
     res.status(200).json(products);
 });
 
@@ -499,9 +518,11 @@ app.get("/api/products", (req, res) => {
  *                   type: number
  *       400:
  *         description: Некорректные данные
+ *       401:
+ *         description: Unauthorized
  */
 
-app.post("/api/products", (req, res) => {
+app.post("/api/products", authMiddleware, roleMiddleware(['seller', 'admin']), (req, res) => {
     const { title, category, description, price } = req.body;
 
     if (!title || !category || !description || price === undefined) {
@@ -553,6 +574,8 @@ app.post("/api/products", (req, res) => {
  *                   type: string
  *                 price:
  *                   type: number
+ *      401:
+ *         description: Unauthorized
  *       404:
  *         description: Товар не найден
  */
@@ -624,11 +647,13 @@ app.get("/api/products/:id", authMiddleware, (req, res) => {
  *                   type: number
  *       400:
  *         description: Некорректные данные
+ *      401:
+ *         description: Unauthorized
  *       404:
  *         description: Товар не найден
  */
 
-app.put("/api/products/:id", authMiddleware , (req, res) => {
+app.put("/api/products/:id", authMiddleware, roleMiddleware(['seller', 'admin']), (req, res) => {
     const product = findProductById(req.params.id);
     if (!product) {
         return res.status(404).json({ error: "product not found" });
@@ -675,11 +700,13 @@ app.put("/api/products/:id", authMiddleware , (req, res) => {
  *                   type: string
  *                 product:
  *                   type: object
+ *      401:
+ *         description: Unauthorized
  *       404:
  *         description: Товар не найден
  */
 
-app.delete("/api/products/:id", authMiddleware ,(req, res) => {
+app.delete("/api/products/:id", authMiddleware, roleMiddleware(['admin']), (req, res) => {
     const index = products.findIndex(p => p.id === req.params.id);
     if (index === -1) {
         return res.status(404).json({ error: "product not found" });
@@ -687,6 +714,194 @@ app.delete("/api/products/:id", authMiddleware ,(req, res) => {
 
     const deletedProduct = products.splice(index, 1);
     res.status(200).json({ message: "product deleted successfully", product: deletedProduct[0] });
+});
+
+/**
+ * @swagger
+ * /api/users:
+ *  get:
+ *  summary: Получить список всех пользователей
+ *  tags: [Users]
+ *  security:
+ *      - bearerAuth: []
+ *  responses:
+ *     200:
+ *          description: Список пользователей
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: array
+ *                      items:
+ *                          type: object
+ *                          properties:
+ *                              id:
+ *                                  type: string
+ *                              email:
+ *                                  type: string
+ *                              first_name:
+ *                                  type: string
+ *                              last_name:
+ *                                  type: string
+ *      401:
+ *         description: Unauthorized
+ */
+
+app.get('/api/users', authMiddleware, roleMiddleware(['admin']), (req, res) => {
+    const safeUsers = users.map(({ password, ...rest }) => rest);
+    res.json(safeUsers);
+});
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *  get:
+ *  summary: Получить пользователя по id
+ *  tags: [Users]
+ *  security:
+ *      - bearerAuth: []
+ *  parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        schema:
+ *        type: string
+ *        description: ID пользователя
+ *  responses:
+ *      200:
+ *         description: Пользователь найден
+ *         content:
+ *             application/json:
+ *                 schema:
+ *                     type: object
+ *                     properties:
+ *                         id:
+ *                             type: string
+ *                         email:
+ *                             type: string
+ *                         first_name:
+ *                             type: string
+ *                         last_name:
+ *                             type: string
+ *     401:
+ *         description: Unauthorized
+ *     404:
+ *         description: Пользователь не найден
+ */
+
+app.get('/api/users/:id', authMiddleware, roleMiddleware(['admin']), (req, res) => {
+    const user = users.find(u => u.id === req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { password, ...safe } = user;
+    res.json(safe);
+});
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ * put:
+ *  summary: Обновить данные пользователя
+ *  tags: [Users]
+ *  security:
+ *      - bearerAuth: []
+ *  parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        schema:
+ *        type: string
+ *        description: ID пользователя
+ *  requestBody:
+ *      required: true
+ *      content:
+ *          application/json:
+ *              schema:
+ *                  type: object
+ *                  properties:
+ *                      first_name:
+ *                          type: string
+ *                      last_name:
+ *                          type: string
+ *                      role:
+ *                          type: string
+ *                          enum: [user, seller, admin]
+ *  responses:
+ *      200:
+ *         description: Пользователь успешно обновлен
+ *         content:
+ *             application/json:
+ *                 schema:
+ *                     type: object
+ *                     properties:
+ *                         id:
+ *                             type: string
+ *                         email:
+ *                             type: string
+ *                         first_name:
+ *                             type: string
+ *                         last_name:
+ *                             type: string
+ *                         role:
+ *                             type: string
+ *     401:
+ *         description: Unauthorized
+ *     404:
+ *         description: Пользователь не найден
+ */
+
+app.put('/api/users/:id', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
+    const { first_name, last_name, role } = req.body;
+    const user = users.find(u => u.id === req.params.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (first_name) user.first_name = first_name;
+    if (last_name) user.last_name = last_name;
+    if (role && ['user', 'seller', 'admin'].includes(role)) user.role = role;
+    const { password, ...safe } = user;
+    res.json(safe);
+});
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ * delete:
+ *  summary: Заблокировать пользователя (удалить)
+ *  tags: [Users]
+ *  security:
+ *      - bearerAuth: []
+ *  parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        schema:
+ *            type: string
+ *        description: ID пользователя
+ *  responses:
+ *      200:
+ *         description: Пользователь заблокирован
+ *         content:
+ *             application/json:
+ *                 schema:
+ *                     type: object
+ *                     properties:
+ *                         message:
+ *                             type: string
+ *                         user:
+ *                             type: object
+ *                             properties:
+ *                                 id:
+ *                                     type: string
+ *                                 email:
+ *                                     type: string
+ *     401:
+ *         description: Unauthorized
+ *     404:
+ *         description: Пользователь не найден
+ */
+
+app.delete('/api/users/:id', authMiddleware, roleMiddleware(['admin']), (req, res) => {
+    const index = users.findIndex(u => u.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+    const deleted = users.splice(index, 1)[0];
+    res.json({ message: 'User blocked', user: { id: deleted.id, email: deleted.email } });
 });
 
 app.listen(port, () => {

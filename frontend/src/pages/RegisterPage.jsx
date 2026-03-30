@@ -9,7 +9,8 @@ export default function RegisterPage() {
         email: "",
         first_name: "",
         last_name: "",
-        password: ""
+        password: "",
+        role: ""
     });
     const [error, setError] = useState("");
 
@@ -48,6 +49,11 @@ export default function RegisterPage() {
                     type="password"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <input
+                    placeholder="Роль (user/seller/admin)"
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value })}
                 />
                 <button type="submit">Зарегистрироваться</button>
                 {error && <p className="error">{error}</p>}

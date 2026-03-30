@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { productsApi } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 export default function ProductDetailsPage() {
+    const { user } = useAuth();
+
     const { id } = useParams();
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
@@ -39,8 +42,15 @@ export default function ProductDetailsPage() {
             <p><b>Описание:</b> {product.description}</p>
             <p><b>Цена:</b> {product.price} руб.</p>
             <div>
-                <Link to={`/products/${id}/edit`}>Редактировать</Link>{" "}
-                <button onClick={onDelete}>Удалить</button>
+                {user && ['seller', 'admin'].includes(user.role) && (
+                    <Link to={`/products/${id}/edit`}>Редактировать</Link>
+                )}
+                {user && user.role === 'admin' && (
+                    <>
+                        {" "}
+                        <button onClick={onDelete}>Удалить</button>
+                    </>
+                )}
             </div>
         </section>
     );

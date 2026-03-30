@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
         setTokens(accessToken, refreshToken);
 
         const meResponse = await authApi.me();
-        setUser(meResponse.data);
+        setUser(meResponse.role);
     }
 
     async function register(payload) {
@@ -57,6 +57,11 @@ export function AuthProvider({ children }) {
         setUser(null);
     }
 
+    const hasRole = (requiredRoles) => {
+        if (!user) return false;
+        return requiredRoles.includes(user.role);
+    };
+
     const value = useMemo(
         () => ({
             user,
@@ -64,7 +69,8 @@ export function AuthProvider({ children }) {
             isAuthenticated,
             login,
             register,
-            logout
+            logout,
+            hasRole,
         }),
         [user, isLoading, isAuthenticated]
     );
