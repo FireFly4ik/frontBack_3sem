@@ -128,6 +128,16 @@ function authMiddleware(req, res, next) {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-refresh-token');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -371,6 +381,7 @@ app.post("/api/auth/login", async (req, res) => {
  *       401:
  *         description: Невалидный или просроченный refresh-токен
  */
+
 app.post("/api/auth/refresh", (req, res) => {
     const refreshToken = extractRefreshTokenFromHeaders(req);
 
