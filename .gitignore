@@ -2,3 +2,5 @@
 .DS_Store
 notes_app/localhost+2-key.pem
 notes_app/localhost+2.pem
+notes_app/keys.txt
+notes_app/node_modules

@@ -55,8 +55,30 @@ self.addEventListener('fetch', event => {
                 .catch(() => {
                     // Если сеть недоступна, берём из кэша (или home как fallback)
                     return caches.match(event.request)
-                        .then(cached => cached || caches.match('/content/home.html'));
+                        .then(cached => cached || caches.match('./content/home.html'));
+                })
+        );
+    } else {
+        event.respondWith(
+            caches.match(event.request)
+                .then(cached => {
+                    return cached || fetch(event.request);
                 })
         );
     }
+});
+
+self.addEventListener('push', (event) => {
+    let data = { title: 'Новое уведомление', body: '' };
+    if (event.data) {
+        data = event.data.json();
+    }
+    const options = {
+        body: data.body,
+        icon: './icons/android-chrome-192x192.png',
+        badge: './icons/favicon-32x32.png'
+    };
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
 });
