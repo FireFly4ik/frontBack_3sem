@@ -3,7 +3,13 @@ const ASSETS = [
     './',
     './index.html',
     './app.js',
-    'https://unpkg.com/chota@latest'
+    './manifest.json',
+    './icons/favicon.ico',
+    './icons/android-chrome-192x192.png',
+    './icons/android-chrome-512x512.png',
+    './icons/apple-touch-icon.png',
+    './icons/favicon-16x16.png',
+    './icons/favicon-32x32.png',
 ];
 
 self.addEventListener('install', event => {
